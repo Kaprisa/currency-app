@@ -113,10 +113,11 @@ export const getCurrenciesSaga = function * () {
 };
 
 export const addCurrencySaga = function * (action) {
-    const { symbol } = action.payload;
+    let { symbol } = action.payload;
     if (!symbol.length) return;
+    symbol = symbol.toUpperCase()
     try {
-        const {data: id} = yield call(internalAxios.post, '/currency', action.payload);
+        const {data: id} = yield call(internalAxios.post, '/currency', { symbol });
         yield put({
             type: ADD_CURRENCY_SUCCESS,
             payload: { symbol, id }
@@ -131,17 +132,20 @@ export const addCurrencySaga = function * (action) {
 
 export const deleteCurrencySaga = function * (action) {
     try {
-        const { id } = action.payload
-        yield call(internalAxios.delete, `/currency/${id}`)
+        const { id } = action.payload;
+        yield call(internalAxios.delete, `/currency/${id}`);
         yield put({
             type: DELETE_CURRENCY_SUCCESS,
             payload: id
         })
     } catch (e) {}
-}
+};
 
 export const getRatesSaga = function * (action) {
     const currencies = action.payload;
+    if (!currencies.length) {
+        return;
+    }
     const symbols = (Array.isArray(currencies) ? currencies : [currencies]).reduce((map, item) => Object.assign(map, {[item.symbol]: item.id}), {});
     try {
         const { data } = yield call(axios.get, `${API_BASE}latest.json?app_id=${API_KEY}&symbols=${Object.keys(symbols).join(',')}`);

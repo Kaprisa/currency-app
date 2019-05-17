@@ -1,0 +1,37 @@
+@dark: #000;
+
+.button {
+  flex: 1;
+  &, &:link, &:visited {
+    border: none;
+    background-color: #26a7a4;
+    color: #fff;
+    font-weight: 700;
+    transition: all .3s ease;
+    will-change: box-shadow;
+    box-shadow: 0 .3rem .1rem -.2rem rgba(@dark, .2), 0 .2rem rgba(@dark, .14), 0 .1rem .5rem 0 rgba(@dark, .12);
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    align-self: center;
+    text-transform: capitalize;
+    font-size: 1.4rem;
+    vertical-align: middle;
+    user-select: none;
+    padding: 0 1.6rem;
+    height: 3.6rem;
+    min-width: 8.8rem;
+    border-radius: .2rem;
+  }
+  &:hover {
+    transform: translateY(-.2rem);
+    box-shadow: 0 1rem 2rem rgba(@dark, .2);
+  }
+  &:active, &:focus {
+    transform: translateY(-.1rem);
+    box-shadow: 0 .5rem .5rem -.3rem rgba(@dark, .2), 0 .8rem 1rem .1rem rgba(@dark, .14), 0 .3rem 1.4rem .2rem rgba(@dark, .12);
+  }
+}

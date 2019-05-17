@@ -41,34 +41,35 @@ class App extends Component {
         const { addingCurrency, symbol } = this.state;
         return (
             <div className="container">
-                <div>
-                    { !addingCurrency && <button onClick={this.toggle}>Добавить валюту</button> }
-                    { addingCurrency && <div>
+                <div className="df aic jcc mb-1">
+                    { !addingCurrency && <button className="button" onClick={this.toggle}>Добавить валюту</button> }
+                    { addingCurrency && <div className="df aic jcc">
                         <input
                             type="text"
                             value={symbol}
+                            className="input"
                             onChange={e => this.setState({symbol: e.target.value})}
                             onKeyDown={this.keyDownHandler}
                         />
-                        <button onClick={this.addCurrency}>ОК</button>
+                        <button className="button" onClick={this.addCurrency}>ОК</button>
                     </div> }
                 </div>
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <td>Symbol</td>
-                            <td>Value</td>
-                            <td>Delete</td>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div>
+                    <div className="df aic jcsa table__header">
+                        <span>Symbol</span><span>Value</span><span>Delete</span>
+                    </div>
+                </div>
+                <div className="table__wrapper">
+                    <table className="table">
+                        <tbody>
                         {currencies.map(currency => <tr key={currency.id}>
                             <td>{currency.symbol}</td>
                             <td>{currency.value}</td>
-                            <td><i className="material-icons">delete</i></td>
+                            <td><i onClick={() => deleteCurrency(currency.id)} className="material-icons">delete</i></td>
                         </tr>)}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         )
     }
