@@ -1,10 +1,10 @@
-import internalAxios from '../../modules/axios';
 import axios from 'axios';
 import {OrderedMap, Record} from 'immutable'
 import {put, call, takeEvery, all} from 'redux-saga/effects'
-import {API_BASE, API_KEY} from '../../constants';
+import {API_BASE, API_KEY, BASE_CURRENCY} from '../../constants';
 import {createSelector} from 'reselect'
 import {mapDataToEntries} from '../utils'
+import db, { CURRENCY_TABLE_NAME } from '../../modules/store/indexDb';
 
 const CurrencyRecord = Record({
     id: null,
@@ -55,11 +55,13 @@ export default function reducer(state = new ReducerState(), action) {
                 .set('entities', mapDataToEntries(payload, CurrencyRecord));
         case GET_RATES_SUCCESS:
             Object.entries(payload)
-                .forEach(([id, value]) => state = state
-                    .updateIn(
-                        ['entities', id],
-                        item => item.set('value', value)
-                    )
+                .forEach(([id, value]) => state = value === 0
+                    ? state.deleteIn(['entities', id])
+                    : state
+                        .updateIn(
+                            ['entities', id],
+                            item => item.set('value', value)
+                        )
                 );
             return state;
         case ERROR:
@@ -91,15 +93,16 @@ export function deleteCurrency(id) {
     }
 }
 
-export const getRates = () => {
+export const getRates = (payload) => {
     return {
         type: GET_RATES_REQUEST,
+        payload
     }
 };
 
 export const getCurrenciesSaga = function * () {
     try {
-        const {data} = yield call(internalAxios.get, `/currency`);
+        const data = yield db.getAll(CURRENCY_TABLE_NAME);
         yield put({
             type: GET_CURRENCIES_SUCCESS,
             payload: data
@@ -107,25 +110,25 @@ export const getCurrenciesSaga = function * () {
     } catch (error) {
         yield put({
             type: ERROR,
-            payload: error && error.response && error.response.data.message
+            payload: error
         })
     }
 };
 
 export const addCurrencySaga = function * (action) {
     let { symbol } = action.payload;
-    if (!symbol.length) return;
-    symbol = symbol.toUpperCase()
+    if (!symbol.length || symbol === BASE_CURRENCY) return;
+    symbol = symbol.toUpperCase();
     try {
-        const {data: id} = yield call(internalAxios.post, '/currency', { symbol });
+        yield db.add(CURRENCY_TABLE_NAME, { id: symbol, symbol });
         yield put({
             type: ADD_CURRENCY_SUCCESS,
-            payload: { symbol, id }
+            payload: { id: symbol, symbol }
         })
     } catch (error) {
         yield put({
             type: ERROR,
-            payload: error && error.response && error.response.data.message
+            payload: error
         })
     }
 };
@@ -133,7 +136,7 @@ export const addCurrencySaga = function * (action) {
 export const deleteCurrencySaga = function * (action) {
     try {
         const { id } = action.payload;
-        yield call(internalAxios.delete, `/currency/${id}`);
+        yield db.delete(CURRENCY_TABLE_NAME, id);
         yield put({
             type: DELETE_CURRENCY_SUCCESS,
             payload: id
@@ -142,16 +145,24 @@ export const deleteCurrencySaga = function * (action) {
 };
 
 export const getRatesSaga = function * (action) {
-    const currencies = action.payload;
-    if (!currencies.length) {
-        return;
+    let currencies = action.payload;
+    if  (Array.isArray(currencies)) {
+        if (!currencies.length) {
+            return
+        }
+    } else {
+        currencies = [currencies]
     }
-    const symbols = (Array.isArray(currencies) ? currencies : [currencies]).reduce((map, item) => Object.assign(map, {[item.symbol]: item.id}), {});
+    const symbols = currencies.map((item) => item.id);
     try {
-        const { data } = yield call(axios.get, `${API_BASE}latest.json?app_id=${API_KEY}&symbols=${Object.keys(symbols).join(',')}`);
+        const { data: { rates } } = yield call(axios.get, `${API_BASE}latest.json?app_id=${API_KEY}&symbols=${BASE_CURRENCY},${symbols.join(',')}`);
         yield put({
             type: GET_RATES_SUCCESS,
-            payload: Object.entries(data.rates).reduce((map, [key, value]) => Object.assign(map, {[symbols[key]]: value}), {})
+            payload: symbols.reduce((map, symbol) => Object.assign(
+                map,
+                {[symbol]: rates[symbol] ? Math.round((rates[BASE_CURRENCY] * 100) / rates[symbol]) / 100 : 0}),
+                {}
+            )
         })
     } catch (error) {
         yield put({
@@ -174,4 +185,4 @@ export const saga = function * () {
 
 export const stateSelector = state => state[moduleName];
 export const entitiesSelector = createSelector(stateSelector, state => state.entities);
-export const currenciesSelector = createSelector(entitiesSelector, entities => entities.valueSeq().toArray());
+export const currenciesSelector = createSelector(entitiesSelector, entities => entities.valueSeq().toArray().map(item => item.toJS()));

@@ -4,8 +4,11 @@ import {
     getCurrencies,
     addCurrency,
     deleteCurrency,
-    currenciesSelector
+    getRates,
+    currenciesSelector,
 } from '../store/ducks/currency';
+import db from '../modules/store/indexDb';
+import { RATES_UPDATE_INTERVAL } from '../constants';
 
 class App extends Component {
     state = {
@@ -13,8 +16,10 @@ class App extends Component {
         symbol: ''
     };
 
-    componentDidMount() {
+    async componentDidMount() {
+        await db.connect();
         this.props.getCurrencies();
+        setInterval(() => this.props.getRates(this.props.currencies), RATES_UPDATE_INTERVAL)
     };
 
     addCurrency = () => {
@@ -37,17 +42,23 @@ class App extends Component {
     };
 
     render() {
-        const { deleteCurrency, currencies } = this.props;
+        const { deleteCurrency, getRates, currencies } = this.props;
         const { addingCurrency, symbol } = this.state;
         return (
             <div className="container">
+                <button
+                    className="button button--circle update-button"
+                    onClick={() => getRates(currencies)}
+                ><i className="material-icons">update</i></button>
                 <div className="df aic jcc mb-1">
-                    { !addingCurrency && <button className="button" onClick={this.toggle}>Добавить валюту</button> }
+                    { !addingCurrency && <button className="button" onClick={this.toggle}>Add currency</button> }
                     { addingCurrency && <div className="df aic jcc">
                         <input
                             type="text"
                             value={symbol}
                             className="input"
+                            placeholder="Symbol"
+                            id="input"
                             onChange={e => this.setState({symbol: e.target.value})}
                             onKeyDown={this.keyDownHandler}
                         />
@@ -79,4 +90,4 @@ export default connect(state => {
     return {
         currencies: currenciesSelector(state)
     }
-}, { getCurrencies, addCurrency, deleteCurrency })(App)
+}, { getCurrencies, addCurrency, deleteCurrency, getRates })(App)
